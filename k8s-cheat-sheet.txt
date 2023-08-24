@@ -664,8 +664,96 @@ kubectl get pvc
 
 kubectl delete pvc --all
 
+==============================================================
+Lab 7 Init Contaier
 =============================================================
-Lab 7: Node Labelling and Constraining pods in 
+
+Task 1 
+
+Create a pod yaml with init containers
+
+vi init.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    command: ['sh', '-c', 'echo The app is running! && sleep 3600']
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    command: ['sh', '-c', "until nslookup myservice.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for myservice; sleep 2; done"]
+  - name: init-mydb
+    image: busybox:1.28
+    command: ['sh', '-c', "until nslookup mydb.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for mydb; sleep 2; done"]
+
+create pod from yaml
+
+kubectl apply -f init.yaml
+
+check the pod status
+
+kubectl get pod
+
+
+Task 2
+
+Create dependancy services
+
+vi svc1.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: myservice
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 9376
+
+create serivce from yaml
+
+kubectl apply -f svc1.yaml
+
+now check the pod status again 
+
+kubectl get pod
+
+now create another service 
+
+vi svc2.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mydb
+spec:
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 9377
+
+apply the service 
+
+kubectl apply -f svc2.yaml
+
+now check the pod status
+
+kubectl get pod 
+
+now delete the services
+
+kubectl delete svc --all
+
+=============================================================
+Lab 8: Node Labelling and Constraining pods in 
 Kubernetes
 =============================================================
 --------------------------------------------------
@@ -737,7 +825,7 @@ $ kubectl label nodes <node_name> disktype-
 $ kubectl get nodes --show-labels | grep ssd 
  
 =================================================================================
-Lab 8: Advanced Pod Scheduling
+Lab 9: Advanced Pod Scheduling
 =================================================================================
 
 Task 1: Node Anti Affinity
