@@ -37,7 +37,7 @@ kubectl create -f sidecar.yml
 
 Make sure that pod is created. 
 
-kubectl exec pod-with-sidecar -c sidecar-container -it bash 
+kubectl exec pod-sidecar -c sidecar-container -it -- bash 
 
 Connect to sidecar pod. 
 
