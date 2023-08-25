@@ -136,7 +136,19 @@ Verify that the namespace and service account has been created.
 
 kubectl get ns
 
+create secret for SA to get cluster access through token 
 
+vi sa-secret.yaml
+
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/service-account-token
+metadata:
+ name: sa-secret
+ annotations:
+   kubernetes.io/service-account.name: “sa-test”
+
+kubectl apply -f sa-secret.yaml
 
 Task 2: Create a new Role and RoleBinding  
 
