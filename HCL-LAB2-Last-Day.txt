@@ -145,8 +145,9 @@ kind: Secret
 type: kubernetes.io/service-account-token
 metadata:
  name: sa-secret
+ namespace: purple
  annotations:
-   kubernetes.io/service-account.name: “demo-sa”
+   kubernetes.io/service-account.name: demo-sa
 
 kubectl apply -f sa-secret.yaml
 
