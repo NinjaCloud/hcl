@@ -1,0 +1,248 @@
+=====================================================
+Lab : Sidecar container 
+=====================================================
+
+Task:1 Creating an Application Container with Sidecar Container 
+
+Create file sidecar.yml. 
+
+apiVersion: v1 
+kind: Pod 
+metadata: 
+  name: pod-sidecar 
+spec: 
+  containers: 
+  - name: app-container 
+    image: ubuntu:latest 
+    command: ["/bin/sh"] 
+    args: ["-c","while true; do date >> /var/log/app.txt; sleep 5; done"] 
+    volumeMounts: 
+    - name: share-logs 
+      mountPath: /var/log/ 
+  - name: sidecar-container 
+    image: nginx:latest 
+    ports: 
+    - containerPort: 80 
+    volumeMounts: 
+    - name: share-logs 
+      mountPath: /usr/share/nginx/html 
+  volumes: 
+  - name: share-logs 
+    emptyDir: {} 
+
+
+Run the container by executing the following command. 
+
+kubectl create -f sidecar.yml 
+
+Make sure that pod is created. 
+
+kubectl exec pod-with-sidecar -c sidecar-container -it bash 
+
+Connect to sidecar pod. 
+
+kubectl get pods 
+
+Update and Install curl on sidecar container. 
+
+apt-get update && apt-get install curl -y 
+
+Access log file via nginx sidecar container server 
+
+curl 'http://localhost:80/app.txt'
+
+Exit from the sidecar container and delete the pod. 
+
+exit
+
+kubectl delete -f sidecar.yml 
+
+
+
+==============================================
+Lab  Liveness and Readiness probes 
+==============================================
+
+Task 1: Liveness probes 
+
+Create a Pod yaml and enter the content given below.
+
+vi liveness-pod.yaml 
+
+apiVersion: v1 
+kind: Pod 
+metadata: 
+  labels: 
+    app: lns 
+  name: liveness-pod 
+spec: 
+  containers: 
+  - name: liveness 
+    image: busybox 
+    args: 
+    - /bin/sh 
+    - -c 
+    - touch /liveness; sleep 6000 
+    livenessProbe: 
+      exec: 
+        command: 
+        - cat 
+        - /liveness 
+      initialDelaySeconds: 5 
+      periodSeconds: 5 
+
+Apply the created pod yaml. 
+
+kubectl create -f liveness-pod.yaml 
+
+Get shell access to the container and delete the /liveness file. 
+
+kubectl exec -it liveness-pod sh 
+
+$ rm -f /liveness
+
+$ exit
+
+View container events and see that the liveness probe has failed. 
+
+kubectl describe pod liveness-pod 
+
+View container status and see that it has restarted due to failed liveness probe. 
+
+
+
+
+
+
+
+========================================
+Lab Control access using RBAC
+=========================================
+
+
+Task 1: Create a new ServiceAccount demo-sa 
+
+See the available namespaces. 
+
+kubectl get ns
+
+Create a new namespace purple and a ServiceAccount for that namespace. 
+
+kubectl create ns purple
+
+kubectl create sa -n purple demo-sa  
+
+Verify that the namespace and service account has been created. 
+
+kubectl get ns
+
+
+
+Task 2: Create a new Role and RoleBinding  
+
+Create new Role and RoleBinding.  
+
+kubectl create role demo-role --verb=list --resource=pods -n purple
+
+kubectl create rolebinding demo-rb --role=demo-role --serviceaccount=purple:demo-sa -n purple 
+
+Task 3: Test whether you can use a GET request to Kubernetes API  
+
+Create a pod with default serviceaccount in purple namespace. 
+
+kubectl run test --image=nginx -n purple
+
+exec into the pod created in previous step.
+
+kubectl exec -it -n purple test -- /bin/bash
+
+CURL to the Kube-api server to see whether you are able to list the pods running in purple namespace.
+
+curl -v --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" https://kubernetes.default/api/v1/namespaces/purple/pods  
+
+Exit from the pod. 
+
+Now create a pod with demo-sa serviceaccount that has the escalated privileges. 
+
+vi pod-sa.yaml
+
+apiVersion: v1 
+kind: Pod 
+metadata: 
+  name: test-01 
+  namespace: purple 
+spec: 
+  serviceAccountName: demo-sa 
+  containers: 
+  - name: my-container 
+    image: nginx 
+
+kubectl apply -f pod-sa.yaml
+
+Exec into the pod. 
+
+kubectl exec -it -n purple test-01 -- /bin/bash  
+
+Now CURL to kube-api server and see whether you can list pods. 
+
+curl -v --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" https://kubernetes.default/api/v1/namespaces/purple/pods 
+
+
+
+===================================================
+Lab ConfigMap 
+===================================================
+
+Task 1: Setting container environment variables using configmap 
+
+Create a ConfigMap yaml and enter the contents given below. 
+
+vi config-map.yaml
+
+apiVersion: v1 
+kind: ConfigMap 
+metadata: 
+  name: my-config 
+  namespace: default 
+data: 
+  mydata: hello_world 
+
+Create the ConfigMap using the yaml. 
+
+kubectl create -f config-map.yaml 
+
+Create a pod that uses the ConfigMap using the content given below. 
+
+vi cm-pod.yaml
+
+apiVersion: v1  
+kind: Pod  
+metadata: 
+ name: cm-pod  
+spec: 
+containers: 
+- name: nginx  
+  image: nginx  
+  ports: 
+  - containerPort: 80  
+  env: 
+  - name: hlo  
+    valueFrom: 
+      configMapKeyRef:  
+        name: my-config  
+        key: mydata 
+
+
+Create the Pod using the yaml. 
+
+kubectl create -f cm-pod.yaml
+
+Once the Pod is up, see that the environment variable specified in the ConfigMap is set in the container. 
+
+kubectl exec -it cm-pod printenv 
+
+Delete the resources created in this task. 
+
+$ kubectl delete -f cm-pod.yaml 
+
+$ kubectl delete -f config-map.yaml 
