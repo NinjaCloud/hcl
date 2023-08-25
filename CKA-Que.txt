@@ -1,0 +1,42 @@
+Unbunnut is GUI based
+
+PSI Browser we need to download and install, then start exam it will be launched in browser
+
+Copy and paste in little bit complicated, so we should know which page and which yaml file, shift up arrow key to copy
+
+Create PVC and pod (dynamic provisioning que)
+Create cluster role binding, user (RBAC)
+Create etcd backup and restore, endpoint, ca cert and ca key will be provided there, we have to use those in cli
+Deployment scheduling
+Kubeadm – current version 1.22.2, upgrade master to 1.25
+Cluster with node, not reachable (not ready state), troubleshoot,
+Kubelet not working state, as kubelet config file
+Refer youtube video
+Make node unscheduable, and then rescheduable, so that all the pod will be terminated and when rescheduled then pod should come up
+Side car, command will be provided, - multi container pod
+Another que on multi container pod, pod with iage
+Create ingress
+Create network policy – study ingress and egress
+Create deployment and export using cluster ip and node port service
+Check pod with high cpu utilization and save in file - kuctl top cmd
+Deployment scale up
+Label related question
+Scheduling via node selector label
+Count of node which is not tent (1 cluster with 4 node, which node is tent and tolerance
+1st Worker node front end, will attach label with tent
+2nd worker node for backend
+3rd worker node for db
+Mumshad – Video of 3 min difference between node affinity and tolerance
+
+Tasks will be from 15 to 20
+
+1 question of 13 tasks, worker node is not ready state, make it running
+
+Focus
+
+RBAC
+Etcd backup and restore
+Cluster management using kubeadm, its complecated and there is no proper documentation
+Office labtop, using virtual box, 1 cluster of 3 nodes (1 master and 2 workers), make it cluster with kubeadm, start with old version and upgrade to latest version
+We have to manage with 6 cluster
+Github unique commands
