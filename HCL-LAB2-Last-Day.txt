@@ -146,7 +146,7 @@ type: kubernetes.io/service-account-token
 metadata:
  name: sa-secret
  annotations:
-   kubernetes.io/service-account.name: “sa-test”
+   kubernetes.io/service-account.name: “demo-sa”
 
 kubectl apply -f sa-secret.yaml
 
