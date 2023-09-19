@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Variables
+export KUBE_VERSION="v1.25.0"
+export CNI_VERSION="v0.9.1"
+export POD_CIDR="10.244.0.0/16"
+export NODE_IP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
+export MASTER_IP="" # set this to the IP address of the master node
+export MASTER_PORT="6443"
+export CLUSTER_NAME="my-cluster"
+export AWS_REGION="us-west-2"
+export AWS_ZONE="us-west-2a"
+export AWS_AMI="ami-0c55b159cbfafe1f0"
+export AWS_INSTANCE_TYPE="t2.micro"
+export AWS_KEY_NAME="my-key-pair"
+export AWS_SECURITY_GROUP="sg-123456"
+
+# Install Docker
+sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+
+# Install kubeadm, kubelet, and kubectl
+sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+sudo apt-get install -y kubelet=$KUBE_VERSION-00 kubeadm=$KUBE_VERSION-00 kubectl=$KUBE_VERSION-00
+sudo apt-mark hold kubelet kubeadm kubectl
+
+# Initialize the cluster
+sudo kubeadm init --pod-network-cidr=$POD_CIDR --apiserver-advertise-address=$NODE_IP --apiserver-bind-port=$MASTER_PORT --kubernetes-version=$KUBE_VERSION
+
+# Set up kubectl config for the current user
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# Install a CNI network plugin
+kubectl apply -f https://docs.projectcalico.org/$CNI_VERSION/manifests/calico.yaml
+
+# If this is a worker node, join the cluster
+if [ ! -z "$MASTER_IP" ]; then
+  sudo kubeadm join $MASTER_IP:$MASTER_PORT --token $(sudo kubeadm token create --print-join-command --ttl 10m) --discovery-token-ca-cert-hash sha256:$(sudo kubeadm token create --print-join-command --ttl 10m | grep -oP 'sha256:[^ ]+')
+fi
