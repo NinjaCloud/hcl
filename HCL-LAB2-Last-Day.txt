@@ -259,3 +259,196 @@ Delete the resources created in this task.
 $ kubectl delete -f cm-pod.yaml 
 
 $ kubectl delete -f config-map.yaml 
+
+
+=============================================================
+Lab 8: Node Labelling and Constraining pods in 
+Kubernetes
+=============================================================
+--------------------------------------------------
+Task 1: Node labeling and constraining pods
+--------------------------------------------------
+
+#View the default labels for all the nodes. Make a note of the NAME of one of the nodes. This node will be used to schedule a pod
+
+$ kubectl get nodes --show-labels
+
+
+#Add a label to the node
+
+$ kubectl label nodes <node_name> disktype=ssd
+
+ 
+#View the labels again to verify labeling from the previous 
+
+$ kubectl get nodes --show-labels
+ 
+
+#Create a pod and use nodeSelector to constrain it to a particular node
+
+$ vi nlns-pod.yaml
+ 
+----------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nlns-nginx-pod
+  labels:
+    env: test
+spec:
+  containers:
+  - name: nlns-nginx-ctr
+    image: nginx
+  nodeSelector:
+    disktype: ssd
+
+
+ ----------------------------------------------------
+
+#Create the pod using the yaml created in the previous step
+
+$ kubectl apply -f nlns-pod.yaml
+ 
+
+#Verify that the pod is scheduled on the desired node
+
+$ kubectl get pods -o wide
+ 
+
+
+--------------------------------------------------
+--------------------------------------------------
+Task 2: Cleanup
+--------------------------------------------------
+--------------------------------------------------
+#Delete the objects created in this lab
+
+$ kubectl delete -f nlns-pod.yaml 
+$ kubectl label nodes <node_name> disktype-   
+
+#-(minus):for removing label
+ 
+
+#Verify that the label is deleted.
+
+$ kubectl get nodes --show-labels | grep ssd 
+ 
+=================================================================================
+Lab 9: Advanced Pod Scheduling
+=================================================================================
+
+Task 1: Node Anti Affinity
+--------------------------------------------------
+--------------------------------------------------
+#Create a nginx yaml of preferredDuringScheduling nodeAffinity using content given below
+
+$ vi aff-na-pod1.yaml
+
+---------------------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: na-nginx-pod1
+spec:
+  containers:
+  - name: na-nginx-ctr1
+    image: nginx
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 1
+        preference:
+          matchExpressions:
+          - key: disktype
+            operator: NotIn  #In-NodeAffinity  #NotIn-NodeAntiAffinity
+            values:
+            - ssd
+
+
+# save the file using "ESCAPE + :wq!"
+-------------------------------------------------------------
+
+ 
+
+#Create a pod using the yaml created in the previous step
+
+$ kubectl apply -f aff-na-pod1.yaml
+
+ 
+
+#View pods and notice that it has been created despite none of the nodes having the specified label
+
+$ kubectl get pods -o wide
+
+ 
+ 
+#Delete the pod na-nginx-pod1
+
+$ kubectl delete -f aff-na-pod1.yaml
+
+ 
+
+#Create another pod with nodeAffinity type of requiredDuringScheduling using content given below
+
+$ vi aff-na-pod2.yaml
+
+-------------------------------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: na-nginx-pod2
+spec:
+  containers:
+  - name: na-nginx-ctr2
+    image: nginx
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: disktype
+            operator: In
+            values:
+            - ssd
+# save the file using "ESCAPE + :wq!"
+-------------------------------------------------------------
+ 
+#Create a pod using the yaml created in the previous step
+
+$ kubectl create -f aff-na-pod2.yaml
+
+ 
+#View pods and see that it is not scheduled as any of the nodes have the specified label
+
+$ kubectl get pods -o wide
+
+ 
+#View all the nodes in the cluster and make a note of the name of one of the nodes
+
+$ kubectl get nodes
+
+ 
+
+#Using the node name from the previous step, add a label to one of the nodes
+
+$ kubectl label nodes <node_name> disktype=ssd
+
+ 
+
+#Apply the yaml again as it is stuck in a pending state
+
+$ kubectl apply -f aff-na-pod2.yaml
+
+
+ 
+
+#View the pods again and see that it is now scheduled
+
+$ kubectl get pods -o wide
+
+
+ 
+
+#Delete the pod
+
+$ kubectl delete -f aff-na-pod2.yaml
